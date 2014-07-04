@@ -57,8 +57,15 @@ shinyUI(pageWithSidebar(
       ),
 
       tabPanel("Influential effect",
-        # verbatimTextOutput("eee"),
-        plotOutput("plot.excl")
+        verbatimTextOutput("influence.choosed"),
+        plotOutput("plot.excl"),
+        p("First x-value (zero) = coefficient value from the full model."),
+        p("Other cases were sequentially removed from data and the model were refitted without them."),
+        br(),
+        h5("Data table of influential observations"),
+        p("Case are in the same order as on the exclusion plot (in the decreasing order of influence)."),
+        verbatimTextOutput("out.datt")
+        # verbatimTextOutput("eee")
       ),
 
       tabPanel("Description",
@@ -67,9 +74,9 @@ shinyUI(pageWithSidebar(
         p("2. Specify the model you would like to fit (see Formula interface for hints)."),
         p("3. Check other settings (GLM family, maximum number of the most influential observations to exclude, criterion to estimate influence)."),
         p("4. Press 'Build model' button - your model will be fitted to the full data set. You may check the results on the 'Full model results' tab."),
-        p("5. Go to the 'Influential effect' tab."),
+        p("5. Go to the 'Influential effect' tab. This step could be computer-intensive (depending on the data size), so it may freeze for a while."),
         p("6. On the sidebar choose which coefficients you would like to plot."),
-        p("7. Press 'Build model' again.  This step could be computer-intensive, so it may freeze for a while."),
+        p("7. To rebuild the plot for the other coefficient press 'Build model' again."),
         p("That's it."),
         br(),
         h5("Formula interface"),

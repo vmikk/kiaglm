@@ -172,19 +172,32 @@ influence.tab <- reactive({
 new.datt <- reactive({
   datt <- mod()$data      # extract data
 
-  if(input$infl.measure == "cov.r") { ii <- influence.tab()$cov.r }
-  if(input$infl.measure == "cook.d") { ii <- influence.tab()$cook.d }
-  if(input$infl.measure == "hat") { ii <- influence.tab()$hat }
-  if(input$infl.measure == "resid") { ii <- influence.tab()$resid }
-  if(input$infl.measure == "rstandard") { ii <- influence.tab()$rstandard }
-  if(input$infl.measure == "rstudent") { ii <- influence.tab()$rstudent }
+  if(input$infl.measure == "cov.r") { datt$Influence <- influence.tab()$cov.r }
+  if(input$infl.measure == "cook.d") { datt$Influence <- influence.tab()$cook.d }
+  if(input$infl.measure == "hat") { datt$Influence <- influence.tab()$hat }
+  if(input$infl.measure == "resid") { datt$Influence <- influence.tab()$resid }
+  if(input$infl.measure == "rstandard") { datt$Influence <- influence.tab()$rstandard }
+  if(input$infl.measure == "rstudent") { datt$Influence <- influence.tab()$rstudent }
 
-  datt <- datt[order(abs(ii), decreasing = TRUE), ]
+  datt <- datt[order(abs(datt$Influence), decreasing = TRUE), ]
   return(datt)
 })
 
 
+output$influence.choosed <- renderPrint({
+  if(input$infl.measure == "cov.r") { ii <- "Covariance ratio" }
+  if(input$infl.measure == "cook.d") { ii <- "Cook's distance" }
+  if(input$infl.measure == "hat") { ii <- "Diagonal elements of the hat matrix" }
+  if(input$infl.measure == "resid") { ii <- "Absolute residuals" }
+  if(input$infl.measure == "rstandard") { ii <- "Standardized residuals"  }
+  if(input$infl.measure == "rstudent") { ii <- "Studentized residuals" }
+  res <- paste("You choosed", ii, "as influence measure.", sep=" ")
+  return(res)
+})
 
+
+
+# Reactive model formula
 build.model <- reactive({
   if(input$family == "binomial")          { mm <- function(x){ glm(formulaText(), data=x, family=binomial()) }}
   if(input$family == "gaussian")          { mm <- function(x){ glm(formulaText(), data=x, family=gaussian()) }}
@@ -197,7 +210,7 @@ build.model <- reactive({
 })
 
 
-
+# Exclude influential observations and remember regression coefficients & their confidence intervals
 excl.coeffs <- reactive({
   datt <- new.datt()       # get sorted data
   fit <- build.model()     # get fitting function
@@ -230,9 +243,7 @@ excl.coeffs <- reactive({
 })
 
 
-# output$eee <- renderPrint({ excl.coeffs() })
-
-
+# Build plot for selected coefficients
 output$plot.excl <- renderPlot({
   if( is.null(input$show.terms) ) { return() }                 # nothing selected
   if( !is.null(input$show.terms) ) {
@@ -257,6 +268,21 @@ output$plot.excl <- renderPlot({
   }
 
 })
+
+
+
+# Create data table with only influential observations
+otlier.data <- reactive({
+	datt <- new.datt()					# influential data
+	terms <- all.vars( formula(mod()) )	# extract names of all variable used in model
+	res <- datt[1:input$n.excl, terms]
+	res <- data.frame(res, Influence.measure = datt$Influence[1:input$n.excl])
+	return(res)
+})
+
+output$out.datt <- renderPrint({ otlier.data() })
+
+# output$eee <- renderPrint({ otlier.data() })
 
 
 
