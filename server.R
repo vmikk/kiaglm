@@ -1,8 +1,7 @@
 
-
-# library(shiny)
-# setwd("c:/Users/mikryukov_vs/Dropbox/R/")
-# runApp("KIA - GLM")
+## TO DO:
+# add export of influece measures
+# fix the models without intercept (Error: arguments imply differing number of rows: 0, 2)
 
 
 library(car)

@@ -80,6 +80,7 @@ shinyUI(pageWithSidebar(
         p("'y ~ A*B*C'   - The same: main effects and interactions = 'y ~ A+B+C+A:B+A:C+B:C+A:B:C'."),
         p("'y ~(A+B+C)^2' - A, B, and C crossed to level 2: 'y ~ A+B+C+A:B+A:C+B:C'."),
         p("'y ~ A*B*C-A:B:C' - same as above: main effects plus 2-way interactions."),
+        p("Models without intercept (e.g. 'y ~ A + B - 1') does not work for the moment - it'll be fixed soon."),
         p("Please use your 'real' varaiable names insted of 'y' or 'A' & 'B' from this examples."),
         br(),
         h5("Error distribution family - Model link function"),
