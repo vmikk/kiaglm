@@ -1,10 +1,6 @@
 
 ## TO DO:
 
-# check coefficients in glm.nb() [MASS]  --> error incorrect number of dimensions
-
-
-
 # add export of influece measures
 # fix the models without intercept (Error: arguments imply differing number of rows: 0, 2)
 # add Zero-Inflated Poisson Regression              http://www.ats.ucla.edu/stat/r/dae/zipoisson.htm 		[pscl] - zeroinfl
@@ -248,23 +244,22 @@ output$inflll <- renderPrint({
 # Order data according to influence measures
 new.datt <- reactive({
   
-  if(!(input$family %in% c("zip", "zinb", "ztp", "ztnb"))) {
-    datt <- mod()$data      # extract data
-
-    if(input$infl.measure == "cov.r") { datt$Influence <- influence.tab()$cov.r }
-    if(input$infl.measure == "cook.d") { datt$Influence <- influence.tab()$cook.d }
-    if(input$infl.measure == "hat") { datt$Influence <- influence.tab()$hat }
-    if(input$infl.measure == "dffit") { datt$Influence <- influence.tab()$dffit }
-    if(input$infl.measure == "resid") { datt$Influence <- influence.tab()$resid }
-    if(input$infl.measure == "rstandard") { datt$Influence <- influence.tab()$rstandard }
-    if(input$infl.measure == "rstudent") { datt$Influence <- influence.tab()$rstudent }
+  # extract data
+  if(!(input$family %in% c("negbinom", "zip", "zinb", "ztp", "ztnb"))) {
+    datt <- mod()$data
   }
 
-  if(input$family %in% c("zip", "zinb")) {
-    datt <- mod()$model      # extract data
-    if(input$infl.measure == "resid")     { datt$Influence <- influence.tab()$resid }
-    if(input$infl.measure == "rstandard") { datt$Influence <- influence.tab()$rstandard }
+  if(input$family %in% c("negbinom", "zip", "zinb")) {
+    datt <- mod()$model
   }
+
+  if(input$infl.measure == "cov.r") { datt$Influence <- influence.tab()$cov.r }
+  if(input$infl.measure == "cook.d") { datt$Influence <- influence.tab()$cook.d }
+  if(input$infl.measure == "hat") { datt$Influence <- influence.tab()$hat }
+  if(input$infl.measure == "dffit") { datt$Influence <- influence.tab()$dffit }
+  if(input$infl.measure == "resid") { datt$Influence <- influence.tab()$resid }
+  if(input$infl.measure == "rstandard") { datt$Influence <- influence.tab()$rstandard }
+  if(input$infl.measure == "rstudent") { datt$Influence <- influence.tab()$rstudent }
 
   datt <- datt[order(abs(datt$Influence), decreasing = TRUE), ]
   return(datt)
