@@ -1,12 +1,50 @@
 
 ## TO DO:
+
+# check coefficients in glm.nb() [MASS]  --> error incorrect number of dimensions
+
+
+
 # add export of influece measures
 # fix the models without intercept (Error: arguments imply differing number of rows: 0, 2)
+# add Zero-Inflated Poisson Regression              http://www.ats.ucla.edu/stat/r/dae/zipoisson.htm 		[pscl] - zeroinfl
+# add Zero-Inflated Negative Binomial Regression    http://www.ats.ucla.edu/stat/r/dae/zinbreg.htm 			[pscl] - zeroinfl
+# add Zero-Truncated Poisson Regression             http://www.ats.ucla.edu/stat/r/dae/ztp.htm				[VGAM] - vglm
+# add Zero-Truncated Negative Binomial Regression   http://www.ats.ucla.edu/stat/r/dae/ztnb.htm 			[VGAM] - vglm
+# hurdle  [pscl]
+# tweedie [statmod]
+
+# GAM + description of splines in formula   s(x)
+
+
+# Does the zero-inflated model is an improvement over a standard Poisson regression?
+# vuong(p1, m1) 		# Vuong test ---> p1 = glm poisson; m1 = zeroinfl() [pscl]
+# Vuong Non-Nested Hypothesis Test
+
+# Dose zero-inflated model is an improvement over a standard negative binomial regression?
+# vuong(m1, m2) 		# Vuong test, m2 = glm.nb() [MASS]
+
+# zip <- zeroinfl(..., dist = "poisson")
+# zinb <- zeroinfl(..., dist = "negbin")
+
+# there're no plots for zeroinfl & vglm !
+#   and no influence.measures  for zeroinfl & vglm!
+
+# compare the size of residuals
+# boxplot(abs(resid(mod.pois) - resid(mod.zinb)))
+
+
 
 
 library(car)
+library(MASS)       # for neg.binom glm
+library(pscl)       # for Zero-Inflated models
+library(VGAM)       # for Zero-Truncated models
+library(XLConnect)
 
 source("df.summary.r")    # str.df function  (==  ezPrecis from ez-package)
+
+# options(shiny.maxRequestSize=30*1024^2)     # increase maximum upload size (default = 5 MB)
 
 
 # transform data.frame (used for confinit)
@@ -101,12 +139,19 @@ mod <- reactive({
   if(formulaText() != "") {
   if(input$family == "binomial")          { fit <- try( glm(formulaText(), data=userData(), family=binomial())) }
   if(input$family == "gaussian")          { fit <- try( glm(formulaText(), data=userData(), family=gaussian())) }
-  if(input$family == "Gamma")             { fit <- try( glm(formulaText(), data=userData(), family=Gamma())) }
+  if(input$family == "Gamma")             { fit <- try( glm(formulaText(), data=userData(), family=Gamma(link="log"))) }
   if(input$family == "inverse.gaussian")  { fit <- try( glm(formulaText(), data=userData(), family=inverse.gaussian())) }
   if(input$family == "poisson")           { fit <- try( glm(formulaText(), data=userData(), family=poisson())) }
   if(input$family == "quasibinomial")     { fit <- try( glm(formulaText(), data=userData(), family=quasibinomial())) }
   if(input$family == "quasipoisson")      { fit <- try( glm(formulaText(), data=userData(), family=quasipoisson())) }
   
+  if(input$family == "negbinom")          { fit <- try( glm.nb(formulaText(), data=userData())) }   # [MASS]
+
+  if(input$family == "zip")  { fit <- try( zeroinfl(formulaText(), data=userData(), dist = "poisson")) }   # [pscl]
+  if(input$family == "zinb") { fit <- try( zeroinfl(formulaText(), data=userData(), dist = "negbin")) }    # [pscl]
+  # if(input$family == "ztp")  { fit <- try( vglm(formulaText(), data=userData(), family = pospoisson())) }       # [VGAM]
+  # if(input$family == "ztnb")  { fit <- try( vglm(formulaText(), data=userData(), family = posnegbinomial())) }  # [VGAM]
+
   if( any(class(fit) != "try-error")) { return(fit) }
   if( any(class(fit) != "try-error")) { return(NULL) }
   }
@@ -122,19 +167,27 @@ output$regTab <- renderPrint({
 })
 
 
+
+
 # Diagnostic plots
 output$diagnost.1 <- renderPlot({
-  if(!is.null(mod())){ plot(mod(), which=1) }
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=1)
+  } else { return(NULL) }
 })
 output$diagnost.2 <- renderPlot({
-  if(!is.null(mod())){ plot(mod(), which=2) }
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=2)
+  } else { return(NULL) }
 })
 output$diagnost.3 <- renderPlot({
-  if(!is.null(mod())){ plot(mod(), which=3) }
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=3)
+  } else { return(NULL) }
 })
 output$diagnost.4 <- renderPlot({
-  if(!is.null(mod())){ plot(mod(), which=4) }
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=4)
+  } else { return(NULL) }
 })
+
+
 
 
 
@@ -142,7 +195,7 @@ output$diagnost.4 <- renderPlot({
 ######################################  Exclusion
 ######################################
 
-# Plot for which coefficient we should show?
+# For which coefficient we should show exclusion plot?
 output$show <- renderUI({
   if(!is.null( mod() )){
     terms <- names(coefficients(mod()))    # all terms included in the model
@@ -156,11 +209,26 @@ output$show <- renderUI({
 # Calculate diagnostic measures
 influence.tab <- reactive({
   if(!is.null( mod() )){
+    if( !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))) {
     infls <- influence.measures(mod())    # Regression Deletion Diagnostics
     infls <- data.frame(infls$infmat,
       resid = residuals(mod()),
       rstandard = rstandard(mod()),
       rstudent = rstudent(mod()))
+    }
+    if(input$family %in% c("zip", "zinb")) {
+      infls <- data.frame(
+        resid = residuals(mod(), type = "response"),      # observed - fitted
+        rstandard = residuals(mod(), type = "pearson"))   # Pearson residuals (raw residuals scaled by square root of variance function)
+    }
+
+    # if(input$family %in% c("ztp", "ztnb")) {        <---------- TO DO (  why n x M matrix of the diagonal elements ??)
+    #   infls <- data.frame(
+    #             dfbetavlm(mod()),
+    #             hatvalues(mod()),
+    #             resid(mod()))
+    # }
+
     return(infls)
   } else {
     return(NULL)
@@ -168,16 +236,35 @@ influence.tab <- reactive({
 })
 
 
+# Highly influential observations
+output$inflll <- renderPrint({
+  if(input$family %in% c("zip", "zinb", "ztp", "ztnb")) { return(NULL) }
+  if(!(input$family %in% c("zip", "zinb", "ztp", "ztnb"))) {
+    infls <- influence.measures(mod())    # Regression Deletion Diagnostics
+    return(summary(infls))
+  }
+})
+
 # Order data according to influence measures
 new.datt <- reactive({
-  datt <- mod()$data      # extract data
+  
+  if(!(input$family %in% c("zip", "zinb", "ztp", "ztnb"))) {
+    datt <- mod()$data      # extract data
 
-  if(input$infl.measure == "cov.r") { datt$Influence <- influence.tab()$cov.r }
-  if(input$infl.measure == "cook.d") { datt$Influence <- influence.tab()$cook.d }
-  if(input$infl.measure == "hat") { datt$Influence <- influence.tab()$hat }
-  if(input$infl.measure == "resid") { datt$Influence <- influence.tab()$resid }
-  if(input$infl.measure == "rstandard") { datt$Influence <- influence.tab()$rstandard }
-  if(input$infl.measure == "rstudent") { datt$Influence <- influence.tab()$rstudent }
+    if(input$infl.measure == "cov.r") { datt$Influence <- influence.tab()$cov.r }
+    if(input$infl.measure == "cook.d") { datt$Influence <- influence.tab()$cook.d }
+    if(input$infl.measure == "hat") { datt$Influence <- influence.tab()$hat }
+    if(input$infl.measure == "dffit") { datt$Influence <- influence.tab()$dffit }
+    if(input$infl.measure == "resid") { datt$Influence <- influence.tab()$resid }
+    if(input$infl.measure == "rstandard") { datt$Influence <- influence.tab()$rstandard }
+    if(input$infl.measure == "rstudent") { datt$Influence <- influence.tab()$rstudent }
+  }
+
+  if(input$family %in% c("zip", "zinb")) {
+    datt <- mod()$model      # extract data
+    if(input$infl.measure == "resid")     { datt$Influence <- influence.tab()$resid }
+    if(input$infl.measure == "rstandard") { datt$Influence <- influence.tab()$rstandard }
+  }
 
   datt <- datt[order(abs(datt$Influence), decreasing = TRUE), ]
   return(datt)
@@ -185,13 +272,28 @@ new.datt <- reactive({
 
 
 output$influence.choosed <- renderPrint({
+
+  if(input$infl.measure == "dffit") { ii <- "DFFITS" }
   if(input$infl.measure == "cov.r") { ii <- "Covariance ratio" }
   if(input$infl.measure == "cook.d") { ii <- "Cook's distance" }
   if(input$infl.measure == "hat") { ii <- "Diagonal elements of the hat matrix" }
   if(input$infl.measure == "resid") { ii <- "Absolute residuals" }
   if(input$infl.measure == "rstandard") { ii <- "Standardized residuals"  }
   if(input$infl.measure == "rstudent") { ii <- "Studentized residuals" }
+
+  if( !(input$family %in% c("zip", "zinb", "ztp", "ztnb")) ) {
   res <- paste("You choosed", ii, "as influence measure.", sep=" ")
+  }
+
+  if(input$family %in% c("zip", "zinb")) {
+    if( !(input$infl.measure %in% c("resid", "rstandard") )){
+    res <- paste("ONLY ABSOLUTE OR PEARSONS RESIDUALS ARE ALLOWED FOR ZERO-INFLATED MODELS!", sep=" ")
+    }
+
+    if(input$infl.measure %in% c("resid", "rstandard")){
+    res <- paste("You choosed", ii, "as influence measure.", sep=" ")
+    }
+  }
   return(res)
 })
 
@@ -201,11 +303,18 @@ output$influence.choosed <- renderPrint({
 build.model <- reactive({
   if(input$family == "binomial")          { mm <- function(x){ glm(formulaText(), data=x, family=binomial()) }}
   if(input$family == "gaussian")          { mm <- function(x){ glm(formulaText(), data=x, family=gaussian()) }}
-  if(input$family == "Gamma")             { mm <- function(x){ glm(formulaText(), data=x, family=Gamma()) }}
+  if(input$family == "Gamma")             { mm <- function(x){ glm(formulaText(), data=x, family=Gamma(link="log")) }}
   if(input$family == "inverse.gaussian")  { mm <- function(x){ glm(formulaText(), data=x, family=inverse.gaussian()) }}
   if(input$family == "poisson")           { mm <- function(x){ glm(formulaText(), data=x, family=poisson()) }}
   if(input$family == "quasibinomial")     { mm <- function(x){ glm(formulaText(), data=x, family=quasibinomial()) }}
   if(input$family == "quasipoisson")      { mm <- function(x){ glm(formulaText(), data=x, family=quasipoisson()) }}
+  if(input$family == "negbinom")          { mm <- function(x){ glm.nb(formulaText(), data=x) }}   # [MASS]
+
+  if(input$family == "zip")   { mm <- function(x){ zeroinfl(formulaText(), data=x, dist = "poisson") }}        # [pscl]
+  if(input$family == "zinb")  { mm <- function(x){ zeroinfl(formulaText(), data=x, dist = "negbin") }}         # [pscl]
+  # if(input$family == "ztp")   { mm <- function(x){ vglm(formulaText(), data=x, family = pospoisson())) }}       # [VGAM]
+  # if(input$family == "ztnb")  { mm <- function(x){ vglm(formulaText(), data=x, family = posnegbinomial())) }}   # [VGAM]
+
   return(mm)
 })
 
@@ -272,17 +381,29 @@ output$plot.excl <- renderPlot({
 
 
 # Create data table with only influential observations
-otlier.data <- reactive({
+outlier.data <- reactive({
+
 	datt <- new.datt()					# influential data
 	terms <- all.vars( formula(mod()) )	# extract names of all variable used in model
 	res <- datt[1:input$n.excl, terms]
 	res <- data.frame(res, Influence.measure = datt$Influence[1:input$n.excl])
+
+  # rename "Influence.measure"
+  if(input$infl.measure == "dffit") { ii <- "DFFITS" }
+  if(input$infl.measure == "cov.r") { ii <- "Covariance.ratio" }
+  if(input$infl.measure == "cook.d") { ii <- "Cook.distance" }
+  if(input$infl.measure == "hat") { ii <- "Hat" }
+  if(input$infl.measure == "resid") { ii <- "Abs.residuals" }
+  if(input$infl.measure == "rstandard") { ii <- "Stand.residuals"  }
+  if(input$infl.measure == "rstudent") { ii <- "Stud.residuals" }
+  colnames(res)[which(colnames(res) == "Influence.measure")] <- ii
+
 	return(res)
 })
 
-output$out.datt <- renderPrint({ otlier.data() })
+output$out.datt <- renderPrint({ outlier.data() })
 
-# output$eee <- renderPrint({ otlier.data() })
+# output$eee <- renderPrint({ outlier.data() })
 
 
 
@@ -319,4 +440,17 @@ output$debug<- renderPrint({
 
 
 })
+
+
+
+
+
+## dffit  [Belsley, Kuh, and Welch, Regression Diagnostics]
+# dfs <- function(mod){
+#   rs <- rstudent(mod)
+#   h <- hatvalues(mod)
+#   sqrt(h/(1 - h))*rs
+#   }
+
+
 
