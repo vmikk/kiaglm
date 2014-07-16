@@ -12,24 +12,8 @@
 
 # GAM + description of splines in formula   s(x)
 
-
-# Does the zero-inflated model is an improvement over a standard Poisson regression?
-# vuong(p1, m1) 		# Vuong test ---> p1 = glm poisson; m1 = zeroinfl() [pscl]
-# Vuong Non-Nested Hypothesis Test
-
-# Dose zero-inflated model is an improvement over a standard negative binomial regression?
-# vuong(m1, m2) 		# Vuong test, m2 = glm.nb() [MASS]
-
-# zip <- zeroinfl(..., dist = "poisson")
-# zinb <- zeroinfl(..., dist = "negbin")
-
 # there're no plots for zeroinfl & vglm !
 #   and no influence.measures  for zeroinfl & vglm!
-
-# compare the size of residuals
-# boxplot(abs(resid(mod.pois) - resid(mod.zinb)))
-
-
 
 
 library(car)
@@ -39,6 +23,7 @@ library(VGAM)       # for Zero-Truncated models
 library(XLConnect)
 
 source("df.summary.r")    # str.df function  (==  ezPrecis from ez-package)
+source("voung.test.r")    # modified Vuong test (from pscl-package)
 
 # options(shiny.maxRequestSize=30*1024^2)     # increase maximum upload size (default = 5 MB)
 
@@ -184,6 +169,32 @@ output$diagnost.4 <- renderPlot({
 })
 
 
+
+# Comparison of zero-inflated models with their non-zero-inflated analogs
+output$vuong <- renderText({
+
+  if(is.null(mod())) { return(NULL) }
+  if(!(input$family %in% c("zip", "zinb"))) { return(NULL) }
+
+  # Does the zero-inflated model is an improvement over a standard Poisson regression?
+  if(input$family == "zip"){
+    pois <- glm(formulaText(), data=userData(), family=poisson())
+    res <- vuong.tst(pois, mod())      # source("voung.test.r")
+  }
+
+  # Dose zero-inflated model is an improvement over a standard negative binomial regression?
+  if(input$family == "zinb"){
+    negb <- glm.nb(formulaText(), data=userData())
+    res <- vuong.tst(negb, mod())
+  }
+
+return( paste("Vuong Non-Nested Hypothesis Test:   ", res))
+})
+
+
+  
+# compare the size of residuals
+# boxplot(abs(resid(mod.pois) - resid(mod.zinb)))
 
 
 
@@ -398,9 +409,6 @@ outlier.data <- reactive({
 
 output$out.datt <- renderPrint({ outlier.data() })
 
-# output$eee <- renderPrint({ outlier.data() })
-
-
 
 # summary(fit)        # display results
 # confint(fit)        # 95% CI for the coefficients
@@ -430,8 +438,14 @@ output$debug<- renderPrint({
     names(input.obj) <- obj
 
     return(list(input = input.obj))
-           # , output = output.obj))
 })
+
+
+# tst
+# output$eeee <- reactive({
+#   res <- "AAAAAAAAAAA"
+# return(res)
+# })
 
 
 })

@@ -62,6 +62,7 @@ shinyUI(pageWithSidebar(
         br(),
         h5("Full model:"),
         verbatimTextOutput("regTab"),
+        textOutput("vuong"),
         plotOutput("diagnost.1"),
         plotOutput("diagnost.2"),
         plotOutput("diagnost.3"),
@@ -137,6 +138,7 @@ shinyUI(pageWithSidebar(
 
         h5("Notes"),
         p("For GLMs (other than the Gaussian family with identity link) regression diagnostic measures are based on one-step approximations which may be inadequate if a case has high influence."),
+        p("Vuong Non-Nested Hypothesis Test: null hypothesis that the models are indistinguishable. A large, positive test statistic provides evidence of the superiority of model 1 over model 2, while a large, negative test statistic is evidence of the superiority of model 2 over model 1."),
         br(),
 
         h5("Future plans"),
@@ -198,11 +200,11 @@ shinyUI(pageWithSidebar(
     br()
       )
 
-      # ,
-      # tabPanel("Debug",
-      #   h5("Debugging info:", style = "color:darkred"),
-      #   verbatimTextOutput("debug")         # return input and stored values
-      # )
+      ,
+      tabPanel("Debug",
+        h5("Debugging info:", style = "color:darkred"),
+        verbatimTextOutput("debug")         # return input and stored values
+      )
 
     )     # close tabsetPanel
   )       # close mainPanel
