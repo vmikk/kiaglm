@@ -19,7 +19,7 @@
 library(car)
 library(MASS)       # for neg.binom glm
 library(pscl)       # for Zero-Inflated models
-library(VGAM)       # for Zero-Truncated models
+# library(VGAM)     # for Zero-Truncated models
 library(XLConnect)
 
 source("df.summary.r")    # str.df function  (==  ezPrecis from ez-package)
@@ -81,7 +81,7 @@ output$excl.n <- renderUI({
     max.n <- ceiling(90*n / 100)         # approximately 10% of data should be always preserved
     current.excl <- ceiling(10*n / 100)  # by default exclude 10% of data
     return(
-    sliderInput("n.excl", label = "Observations to exclude:",
+    sliderInput("n.excl", label = "Number of Observations to exclude:",
           min = 1, max = max.n, value = current.excl, step=1)
     )
   } else {
@@ -133,6 +133,9 @@ mod <- reactive({
   # if(input$family == "ztp")  { fit <- try( vglm(formulaText(), data=userData(), family = pospoisson())) }       # [VGAM]
   # if(input$family == "ztnb")  { fit <- try( vglm(formulaText(), data=userData(), family = posnegbinomial())) }  # [VGAM]
 
+  if(input$family == "phurd")  { fit <- try( hurdle(formulaText(), data=userData(), dist = "poisson")) }   # [pscl]
+  if(input$family == "nbhurd") { fit <- try( hurdle(formulaText(), data=userData(), dist = "negbin")) }    # [pscl]
+
   if( any(class(fit) != "try-error")) { return(fit) }
   if( any(class(fit) != "try-error")) { return(NULL) }
   }
@@ -152,19 +155,19 @@ output$regTab <- renderPrint({
 
 # Diagnostic plots
 output$diagnost.1 <- renderPlot({
-  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=1)
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd"))){ plot(mod(), which=1)
   } else { return(NULL) }
 })
 output$diagnost.2 <- renderPlot({
-  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=2)
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd"))){ plot(mod(), which=2)
   } else { return(NULL) }
 })
 output$diagnost.3 <- renderPlot({
-  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=3)
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd"))){ plot(mod(), which=3)
   } else { return(NULL) }
 })
 output$diagnost.4 <- renderPlot({
-  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))){ plot(mod(), which=4)
+  if(!is.null(mod()) && !(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd"))){ plot(mod(), which=4)
   } else { return(NULL) }
 })
 
@@ -174,21 +177,33 @@ output$diagnost.4 <- renderPlot({
 output$vuong <- renderText({
 
   if(is.null(mod())) { return(NULL) }
-  if(!(input$family %in% c("zip", "zinb"))) { return(NULL) }
+  if(!(input$family %in% c("zip", "zinb", "phurd", "nbhurd"))) { return(NULL) }
 
   # Does the zero-inflated model is an improvement over a standard Poisson regression?
   if(input$family == "zip"){
     pois <- glm(formulaText(), data=userData(), family=poisson())
-    res <- vuong.tst(pois, mod())      # source("voung.test.r")
+    res <- vuong.tst(pois, mod(), mod.type = "zip")      # source("voung.test.r")
   }
 
   # Dose zero-inflated model is an improvement over a standard negative binomial regression?
   if(input$family == "zinb"){
     negb <- glm.nb(formulaText(), data=userData())
-    res <- vuong.tst(negb, mod())
+    res <- vuong.tst(negb, mod(), mod.type = "zinb")
   }
 
-return( paste("Vuong Non-Nested Hypothesis Test:   ", res))
+  # Does the hurdle model is an improvement over a standard Poisson regression?
+  if(input$family == "phurd"){
+    pois <- glm(formulaText(), data=userData(), family=poisson())
+    res <- vuong.tst(pois, mod(), mod.type = "phurd")
+  }
+
+  # Does the hurdle model is an improvement over a standard negative binomial regression?
+  if(input$family == "nbhurd"){
+    negb <- glm.nb(formulaText(), data=userData())
+    res <- vuong.tst(negb, mod(), mod.type = "nbhurd")
+  }
+
+return(res)
 })
 
 
@@ -216,14 +231,14 @@ output$show <- renderUI({
 # Calculate diagnostic measures
 influence.tab <- reactive({
   if(!is.null( mod() )){
-    if( !(input$family %in% c("zip", "zinb", "ztp", "ztnb"))) {
+    if( !(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd"))) {
     infls <- influence.measures(mod())    # Regression Deletion Diagnostics
     infls <- data.frame(infls$infmat,
       resid = residuals(mod()),
       rstandard = rstandard(mod()),
       rstudent = rstudent(mod()))
     }
-    if(input$family %in% c("zip", "zinb")) {
+    if(input$family %in% c("zip", "zinb", "phurd", "nbhurd")) {
       infls <- data.frame(
         resid = residuals(mod(), type = "response"),      # observed - fitted
         rstandard = residuals(mod(), type = "pearson"))   # Pearson residuals (raw residuals scaled by square root of variance function)
@@ -245,8 +260,8 @@ influence.tab <- reactive({
 
 # Highly influential observations
 output$inflll <- renderPrint({
-  if(input$family %in% c("zip", "zinb", "ztp", "ztnb")) { return(NULL) }
-  if(!(input$family %in% c("zip", "zinb", "ztp", "ztnb"))) {
+  if(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd")) { return(NULL) }
+  if(!(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd"))) {
     infls <- influence.measures(mod())    # Regression Deletion Diagnostics
     return(summary(infls))
   }
@@ -256,11 +271,11 @@ output$inflll <- renderPrint({
 new.datt <- reactive({
   
   # extract data
-  if(!(input$family %in% c("negbinom", "zip", "zinb", "ztp", "ztnb"))) {
+  if(!(input$family %in% c("negbinom", "zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd"))) {
     datt <- mod()$data
   }
 
-  if(input$family %in% c("negbinom", "zip", "zinb")) {
+  if(input$family %in% c("negbinom", "zip", "zinb", "phurd", "nbhurd")) {
     datt <- mod()$model
   }
 
@@ -287,13 +302,13 @@ output$influence.choosed <- renderPrint({
   if(input$infl.measure == "rstandard") { ii <- "Standardized residuals"  }
   if(input$infl.measure == "rstudent") { ii <- "Studentized residuals" }
 
-  if( !(input$family %in% c("zip", "zinb", "ztp", "ztnb")) ) {
+  if( !(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd")) ) {
   res <- paste("You choosed", ii, "as influence measure.", sep=" ")
   }
 
-  if(input$family %in% c("zip", "zinb")) {
+  if(input$family %in% c("zip", "zinb", "phurd", "nbhurd")) {
     if( !(input$infl.measure %in% c("resid", "rstandard") )){
-    res <- paste("ONLY ABSOLUTE OR PEARSONS RESIDUALS ARE ALLOWED FOR ZERO-INFLATED MODELS!", sep=" ")
+    res <- paste("ONLY ABSOLUTE OR PEARSONS RESIDUALS ARE ALLOWED FOR ZERO-INFLATED OR ZERO-AUGMENTED MODELS!", sep=" ")
     }
 
     if(input$infl.measure %in% c("resid", "rstandard")){
@@ -320,6 +335,9 @@ build.model <- reactive({
   if(input$family == "zinb")  { mm <- function(x){ zeroinfl(formulaText(), data=x, dist = "negbin") }}         # [pscl]
   # if(input$family == "ztp")   { mm <- function(x){ vglm(formulaText(), data=x, family = pospoisson())) }}       # [VGAM]
   # if(input$family == "ztnb")  { mm <- function(x){ vglm(formulaText(), data=x, family = posnegbinomial())) }}   # [VGAM]
+
+  if(input$family == "phurd")  { mm <- function(x){ hurdle(formulaText(), data=userData(), dist = "poisson") }}   # [pscl]
+  if(input$family == "nbhurd") { mm <- function(x){ hurdle(formulaText(), data=userData(), dist = "negbin") }}    # [pscl]
 
   return(mm)
 })

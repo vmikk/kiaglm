@@ -6,7 +6,7 @@
 shinyUI(pageWithSidebar(
 
   # Application title
-  headerPanel(h3("GLM robustness")),
+  headerPanel(h4("GLM (Generalized Linear Models)")),
 
 
   sidebarPanel(
@@ -23,8 +23,10 @@ shinyUI(pageWithSidebar(
             "Negative Binomial" = "negbinom",             # [MASS]      
             "Quasibinomial" = "quasibinomial",
             "Quasipoisson" = "quasipoisson",
-            "Zero-Inflated Poisson" = "zip",              # [pscl]
-            "Zero-Inflated Negative Binomial" = "zinb"    # [pscl]
+            "Zero-Inflated Poisson" = "zip",               # [pscl]
+            "Zero-Inflated Negative Binomial" = "zinb",    # [pscl]
+            "Poisson hurdle" = "phurd",		 			           # [pscl]
+            "Negative binomial hurdle" = "nbhurd"		       # [pscl]
             # ,
             # "Zero-Truncated Poisson" = "ztp",             # [VGAM]
             # "Zero-Truncated Negative Binomial" = "ztnb"   # [VGAM]
@@ -44,7 +46,7 @@ shinyUI(pageWithSidebar(
                    "Standardized residuals" = "rstandard",
                    "Studentized residuals" = "rstudent"
               ), selected = "cook.d"),
-    helpText("Note: Only residuals for Zero-Inflated models is available."),
+    helpText("Note: Only residuals for Zero-Inflated & Hurdle models is available."),
     br(),
     uiOutput("show"),
     submitButton("Build model")
@@ -113,7 +115,14 @@ shinyUI(pageWithSidebar(
         p("Alternatively, the response can be a matrix where the first column is the number of 'successes' and the second column is the number of 'failures'. In this case one should specify model like ' cbind(success, failure) ~ A + B '. 
             Where 'success' & 'failure' are column names in the data."),
         br(),
-
+        br(),
+        p("Zero-inflated and Hurdle models: If a formula of type 'y ~ x1 + x2' is supplied, it not only describes the count regression relationship of y and x1 & x2 but also implies 
+        	that the same set of regressors is used for the zero component (zero-inflation or hurdle). 
+        	This is could be made more explicit by equivalently writing the formula as 'y ~ x1 + x2 | x1 + x2'. 
+        	Of course, a different set of regressors could be specified for the zero component, e.g., 'y ~ x1 + x2 | z1 + z2 + z3', 
+        	giving the count data model y ~ x1 + x2 conditional on (|) the zero-inflation or hurdle model y ~ z1 + z2 + z3."),
+        br(),
+        
         h5("Error distribution family - Model link function used"),
           p("Gaussian - Identity"),
           p("Inverse Gaussian - 1/mu^2"),
@@ -123,8 +132,9 @@ shinyUI(pageWithSidebar(
           p("Negative Binomial - log"),
           p("Quasibinomial - logit"),
           p("Quasipoisson - log"),
-          p("Zero-Inflated Poisson - log"),
-          p("Zero-Inflated Negative Binomial - log"),
+          p("Zero-Inflated Poisson - log; binomial model with logit link for zero-inflation model"),
+          p("Zero-Inflated Negative Binomial - log; binomial model with logit link for zero-inflation model"),
+          p("Hurdle - log; distribution for the zero hurdle model - binomial model with logit link"),
         br(),
 
         h5("Potentially influential observations"),
@@ -143,21 +153,25 @@ shinyUI(pageWithSidebar(
 
         h5("Future plans"),
         p("Add export of influece measures."),
+        p("Add batch comparison of likelihood from different models."),
         p("Fix handling of the models without intercept."),
         p("Add back-transformation of regression coefficients to the original scale (now they're on the scale of the link function)."),
         p("Add opportunity to choose other link functions (for example complementary log-log link function in binomial glm for presence-absence data)."),
         p("Add link-function selection based on lowest residual deviance (-2*logLikelihood)."),
         p("Add some stopping rules in exclusion algorithm (e.g. based on Mallow's Cp or something)."),
+        p("Add computation of the Wald tests using sandwich standard errors for ordinary Poisson model (because Wald test results might be too optimistic due to a misspecification of the likelihoodin the case of over-dispersion."),
+        br(),
+        h5("Computational details"),
+        p("Used R-packages: MASS, pscl, car, XLConnect."),
         br(),
         br(),
         br(),
         br(),
-        br(),
-        p("Author - Vladimir Mikryukov, 04.07.2014")
+        p("Author - Vladimir Mikryukov (vmikryukov at gmail.com), 04.07.2014")
       ),
 
       tabPanel("Model selection cheat list",
-        h5("Which to model to choose?"),
+        h5("Which model to choose?"),
 
         h6("Continuous distributions"),
         p("Standard normal or linear regression - Gaussian"),
@@ -197,14 +211,20 @@ shinyUI(pageWithSidebar(
         	This class of models will surpass Ordinary Poisson & Negative Binomial regression which will predict zero counts even though there are no zero values."),
     p("Zero-truncated Poisson regression - Useful if you have no overdispersion"),
     p("Zero-truncated negative binomial regression  - When overdispersion exists."),
+    br(),
+    p("Hurdle (zero-augmented or zero-altered) models: In addition to over-dispersion, many empirical count data sets exhibit more zero observations than would be allowed for by the Poisson model. 
+    	One model class capable of capturing both properties is the hurdle model. 
+    	They are two-component models: A truncated count component, such as Poisson, geometric or negative binomial, is employed for positive counts, 
+    	and a hurdle component models zero vs. larger counts. 
+    	For the latter, either a binomial model or a censored count distribution can be employed."),
     br()
       )
 
-      ,
-      tabPanel("Debug",
-        h5("Debugging info:", style = "color:darkred"),
-        verbatimTextOutput("debug")         # return input and stored values
-      )
+      # ,
+      # tabPanel("Debug",
+      #   h5("Debugging info:", style = "color:darkred"),
+      #   verbatimTextOutput("debug")         # return input and stored values
+      # )
 
     )     # close tabsetPanel
   )       # close mainPanel

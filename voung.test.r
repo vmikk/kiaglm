@@ -1,7 +1,7 @@
 # Vuong Non-Nested Hypothesis Test
 # based on [pscl v.1.04.4]
 
-vuong.tst <- function(m1,m2,digits=getOption("digits")){
+vuong.tst <- function(m1, m2, digits=getOption("digits"), mod.type=NULL){
 
 	# m1 = model 1 = non-zero-inflated model
 	# m2 = model 2 = zero-inflated model
@@ -54,15 +54,33 @@ vuong.tst <- function(m1,m2,digits=getOption("digits")){
   # cat("(test-statistic is asymptotically distributed N(0,1) under the\n")
   # cat(" null that the models are indistinguishible)\n")
   
-  if(v>0)
-    res <- paste("NON-zero-inflated model is superior to zero-inflated model.  ",
-    		paste("Vuong Test-Statistic =", round(v, 3)),
-    		", p = ", round(1-pnorm(v), 4), sep="")
-  else
-    res <- paste("Zero-inflated model is superior to its non-zero-inflated analog.  ",
-    		paste("Vuong Test-Statistic =", round(v, 3)),
+  if(v>0){
+    vstat <- paste( paste("Vuong Non-Nested Hypothesis Test-Statistic =", round(v, 3)),
+        ", p = ", round(1-pnorm(v), 4), sep="")
+
+  	if(is.null(mod.type)){ txt <- "Model 1 is superior to Model 2.  " }
+    if(!is.null(mod.type)){
+      if(mod.type == "zip"){ txt <- "Standard Poisson regression is superior to a zero-inflated model.  " }
+      if(mod.type == "zinb"){ txt <- "Negative binomial regression is superior to a zero-inflated model.  " }
+    	if(mod.type == "phurd"){ txt <- "Standard Poisson regression is superior to a hurdle model.  " }
+    	if(mod.type == "nbhurd"){ txt <- "Negative binomial regression is superior to a hurdle model.  " }
+    }
+  }
+
+  if(v<0){
+    vstat <- paste(  paste("Vuong Non-Nested Hypothesis Test-Statistic =", round(v, 3)),
             ", p = ", round(pnorm(v), 4), sep="")
+
+	  if(is.null(mod.type)){ txt <- "Model 2 is superior to Model 1.  " }
+    if(!is.null(mod.type)){
+      if(mod.type == "zip"){ txt <- "Zero-inflated model is superior to a standard Poisson regression.  " }
+      if(mod.type == "zinb"){ txt <- "Zero-inflated model is superior to a standard Negative binomial regression.  " }
+      if(mod.type == "phurd"){ txt <- "Hurdle model is superior to a standard Poisson regression.  " }
+      if(mod.type == "nbhurd"){ txt <- "Hurdle model is superior to a standard Negative binomial regression.  " }
+    }
+  }
   
+  res <- paste(txt, vstat)
   return(res)
 }
 
