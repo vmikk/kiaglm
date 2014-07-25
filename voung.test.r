@@ -5,7 +5,7 @@ vuong.tst <- function(m1, m2, digits=getOption("digits"), mod.type=NULL){
 
 	# m1 = model 1 = non-zero-inflated model
 	# m2 = model 2 = zero-inflated model
-
+	# mod.type = which models will be compared?   e.g.  c("pois", "zip")
 
   ## get predicted probabilities for both models
   m1y <- m1$y
@@ -54,32 +54,43 @@ vuong.tst <- function(m1, m2, digits=getOption("digits"), mod.type=NULL){
   # cat("(test-statistic is asymptotically distributed N(0,1) under the\n")
   # cat(" null that the models are indistinguishible)\n")
   
-  if(v>0){
-    vstat <- paste( paste("Vuong Non-Nested Hypothesis Test-Statistic =", round(v, 3)),
-        ", p = ", round(1-pnorm(v), 4), sep="")
 
-  	if(is.null(mod.type)){ txt <- "Model 1 is superior to Model 2.  " }
+
+
+  if(mod.type[1] == "pois")   { modd <- "Standard Poisson regression" }
+  if(mod.type[1] == "negbin") { modd <- "Negative binomial regression" }
+  if(mod.type[1] == "gamma")  { modd <- "Gamma regression" }
+
+
+  if(v>0){
+  	p.val <- round(1-pnorm(v), 4)
+
+    if(p.val < 0.05){
+    if(is.null(mod.type)){ txt <- "Model 1 is superior to Model 2.  " }
     if(!is.null(mod.type)){
-      if(mod.type == "zip"){ txt <- "Standard Poisson regression is superior to a zero-inflated model.  " }
-      if(mod.type == "zinb"){ txt <- "Negative binomial regression is superior to a zero-inflated model.  " }
-    	if(mod.type == "phurd"){ txt <- "Standard Poisson regression is superior to a hurdle model.  " }
-    	if(mod.type == "nbhurd"){ txt <- "Negative binomial regression is superior to a hurdle model.  " }
-    }
+      if(mod.type[2] %in% c("zip", "zinb"))   { txt <- paste(modd, " is superior to a zero-inflated model", sep="") }
+      if(mod.type[2] %in% c("phurd", "nbhurd")) { txt <- paste(modd, " is superior to a hurdle model", sep="") }
+    }}
   }
 
   if(v<0){
-    vstat <- paste(  paste("Vuong Non-Nested Hypothesis Test-Statistic =", round(v, 3)),
-            ", p = ", round(pnorm(v), 4), sep="")
+  	p.val <- round(pnorm(v), 4)
 
-	  if(is.null(mod.type)){ txt <- "Model 2 is superior to Model 1.  " }
+    if(p.val < 0.05){
+    if(is.null(mod.type)){ txt <- "Model 2 is superior to Model 1.  " }
     if(!is.null(mod.type)){
-      if(mod.type == "zip"){ txt <- "Zero-inflated model is superior to a standard Poisson regression.  " }
-      if(mod.type == "zinb"){ txt <- "Zero-inflated model is superior to a standard Negative binomial regression.  " }
-      if(mod.type == "phurd"){ txt <- "Hurdle model is superior to a standard Poisson regression.  " }
-      if(mod.type == "nbhurd"){ txt <- "Hurdle model is superior to a standard Negative binomial regression.  " }
-    }
+      if(mod.type[2] %in% c("zip", "zinb")) { txt <- paste("Zero-inflated model is superior to a ", modd, sep="") }
+      if(mod.type[2] %in% c("phurd", "nbhurd")) { txt <- paste("Hurdle model is superior to a ", modd, sep="") }
+    }}
+  }
+
+  if(p.val >= 0.05){
+    if(is.null(mod.type)){ txt <- "Model 2 is indistinguishable from Model 1.  " }
+    if(mod.type[2] %in% c("zip", "zinb")) { txt <- paste("Zero-inflated model is indistinguishable from a ", modd, sep="") }
+    if(mod.type[2] %in% c("phurd", "nbhurd")) { txt <- paste("Hurdle model is indistinguishable from a ", modd, sep="") }
   }
   
+  vstat <- paste("(Vuong Non-Nested Hypothesis Test-Statistic = ", round(v, 3), ", p = ", p.val, "). ", sep="")
   res <- paste(txt, vstat)
   return(res)
 }

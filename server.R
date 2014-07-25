@@ -1,6 +1,7 @@
 
 ## TO DO:
 
+# Vuong: hurldle vs Poisson/Negbin/Gamma
 # add export of influece measures
 # fix the models without intercept (Error: arguments imply differing number of rows: 0, 2)
 # add Zero-Inflated Poisson Regression              http://www.ats.ucla.edu/stat/r/dae/zipoisson.htm 		[pscl] - zeroinfl
@@ -178,29 +179,35 @@ output$vuong <- renderText({
 
   if(is.null(mod())) { return(NULL) }
   if(!(input$family %in% c("zip", "zinb", "phurd", "nbhurd"))) { return(NULL) }
+  if(input$family %in% c("zip", "zinb", "phurd", "nbhurd")) {
+
+    pois <- glm(formulaText(), data=userData(), family=poisson())
+    negb <- glm.nb(formulaText(), data=userData())
 
   # Does the zero-inflated model is an improvement over a standard Poisson regression?
   if(input$family == "zip"){
-    pois <- glm(formulaText(), data=userData(), family=poisson())
-    res <- vuong.tst(pois, mod(), mod.type = "zip")      # source("voung.test.r")
+    v1 <- vuong.tst(pois, mod(), mod.type = c("pois", "zip"))      # source("voung.test.r")
+    v2 <- vuong.tst(negb, mod(), mod.type = c("negbin", "zip"))
   }
 
   # Dose zero-inflated model is an improvement over a standard negative binomial regression?
   if(input$family == "zinb"){
-    negb <- glm.nb(formulaText(), data=userData())
-    res <- vuong.tst(negb, mod(), mod.type = "zinb")
+    v1 <- vuong.tst(pois, mod(), mod.type = c("pois", "zinb"))
+    v2 <- vuong.tst(negb, mod(), mod.type = c("negbin", "zinb"))
   }
 
   # Does the hurdle model is an improvement over a standard Poisson regression?
   if(input$family == "phurd"){
-    pois <- glm(formulaText(), data=userData(), family=poisson())
-    res <- vuong.tst(pois, mod(), mod.type = "phurd")
+    v1 <- vuong.tst(pois, mod(), mod.type = c("pois", "phurd"))
+    v2 <- vuong.tst(negb, mod(), mod.type = c("negbin", "phurd"))
   }
 
   # Does the hurdle model is an improvement over a standard negative binomial regression?
   if(input$family == "nbhurd"){
-    negb <- glm.nb(formulaText(), data=userData())
-    res <- vuong.tst(negb, mod(), mod.type = "nbhurd")
+    v1 <- vuong.tst(pois, mod(), mod.type = c("pois", "nbhurd"))
+    v2 <- vuong.tst(negb, mod(), mod.type = c("negbin", "nbhurd"))
+  }
+    res <- paste(v1, v2, sep=" ; ") 
   }
 
 return(res)
