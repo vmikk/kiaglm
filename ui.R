@@ -114,6 +114,8 @@ shinyUI(pageWithSidebar(
         p("If the response is a vector it can be numeric with 0 for failure and 1 for success, or a factor with the first level representing 'failure' and all others representing 'success'."),
         p("Alternatively, the response can be a matrix where the first column is the number of 'successes' and the second column is the number of 'failures'. In this case one should specify model like ' cbind(success, failure) ~ A + B '. 
             Where 'success' & 'failure' are column names in the data."),
+        p("The formula may include an offset term, e.g. 'y ~ A + offset(B)' where B will have the coefficient 1 rather than an estimated coefficient."),
+        p("One can used arithmetical operators to create a latent variables, e.g. 'y ~ A + I(B+C)', the term B+C will be interpreted as the sum of B and C."),
         br(),
         br(),
         p("Zero-inflated and Hurdle models: If a formula of type 'y ~ x1 + x2' is supplied, it not only describes the count regression relationship of y and x1 & x2 but also implies 
