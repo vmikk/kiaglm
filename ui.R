@@ -89,7 +89,7 @@ shinyUI(pageWithSidebar(
       ),
 
       tabPanel("Description",
-        h5("Typical Workflow"),
+        h3(strong("Typical Workflow")),
         p("1. Upload your data: Tab-delimited text file with header (*.txt) or Excel file with one sheet (*.xls, *.xlsx)."),
         p("2. Specify the model you would like to fit (see Formula interface for hints)."),
         p("3. Check other settings (GLM family, maximum number of the most influential observations to exclude, criterion to estimate influence)."),
@@ -100,7 +100,7 @@ shinyUI(pageWithSidebar(
         p("That's it."),
         br(),
 
-        h5("Formula interface"),
+        h3(strong("Formula interface")),
         p("Here are several examples you may try (paste formula without quotes):"),
         p("'y ~ A + B'   - Additive model with 2 predictors (no interaction)."),
         p("'y ~ log(A) + sqrt(B)'   - The same but predictors are transformed."),
@@ -125,7 +125,7 @@ shinyUI(pageWithSidebar(
         	giving the count data model y ~ x1 + x2 conditional on (|) the zero-inflation or hurdle model y ~ z1 + z2 + z3."),
         br(),
         
-        h5("Error distribution family - Model link function used"),
+        h3(strong("Error distribution family - Model link function used")),
           p("Gaussian - Identity"),
           p("Inverse Gaussian - 1/mu^2"),
           p("Gamma - log"),
@@ -139,7 +139,7 @@ shinyUI(pageWithSidebar(
           p("Hurdle - log; distribution for the zero hurdle model - binomial model with logit link"),
         br(),
 
-        h5("Potentially influential observations"),
+        h3(strong("Potentially influential observations")),
         p("Influential cases are defined as:"),
         p("  - any of its absolute dfbetas values are larger than 1, or"),
         p("  - its absolute dffits value is larger than 3*sqrt(k/(n-k)), or"),
@@ -148,12 +148,12 @@ shinyUI(pageWithSidebar(
         p("  - its hatvalue is larger than 3*k/n."),
         br(),
 
-        h5("Notes"),
+        h3(strong("Notes")),
         p("For GLMs (other than the Gaussian family with identity link) regression diagnostic measures are based on one-step approximations which may be inadequate if a case has high influence."),
         p("Vuong Non-Nested Hypothesis Test: null hypothesis that the models are indistinguishable. A large, positive test statistic provides evidence of the superiority of model 1 over model 2, while a large, negative test statistic is evidence of the superiority of model 2 over model 1."),
         br(),
 
-        h5("Future plans"),
+        h3(strong("Future plans")),
         p("Add export of influece measures."),
         p("Add batch comparison of likelihood from different models."),
         p("Fix handling of the models without intercept."),
@@ -163,7 +163,8 @@ shinyUI(pageWithSidebar(
         p("Add some stopping rules in exclusion algorithm (e.g. based on Mallow's Cp or something)."),
         p("Add computation of the Wald tests using sandwich standard errors for ordinary Poisson model (because Wald test results might be too optimistic due to a misspecification of the likelihoodin the case of over-dispersion."),
         br(),
-        h5("Computational details"),
+
+        h3(strong("Computational details")),
         p("Used R-packages: MASS, pscl, car, XLConnect."),
         br(),
         br(),
@@ -173,19 +174,20 @@ shinyUI(pageWithSidebar(
       ),
 
       tabPanel("Model selection cheat list",
-        h5("Which model to choose?"),
-
-        h6("Continuous distributions"),
+        h3(strong("Which model to choose?")),
+        br(),
+        h4(em("Continuous distributions:")),
         p("Standard normal or linear regression - Gaussian"),
         p("Positive only continuous - Gamma or Inverse Gaussian"),
-
-        h6("Count data"),
+        br(),
+        h4(em("Count data:")),
         p("Equidispersed count - Poisson"),
         # p("count, with the ancillary parameter a constant - Negative binomial ----????"),
         p("Overdispersed counts - Quasipoisson"),
         p("Overdispersed proportions - Quasibinomial"),
         # p("Positive continuous data with exact zeros - tweedie [package statmod]"),
         br(),
+        h4(em("Other:")),
         p("Binary (1/0) response - Logistic"),
         p("Binomial distribution with m=1  - Binary-Bernoulli"),
         p("Proportional (y/m, where y = number of 1's) - Binomial "),
@@ -198,6 +200,7 @@ shinyUI(pageWithSidebar(
 		# p("Logistic regression (Family = Binomial) - When the response data (Y) are binary (taking on only values 0 and 1)."),
 		# br(),
     # h6("Count data:"),
+    h3(strong("Notes")),
 		p("Poisson Regression is used to model count variables. The variance in the Poisson model is identical to the mean."),
 		p("Negative binomial regression is for modeling count variables, usually for over-dispersed count outcome variables.
 			It can be considered as a generalization of Poisson regression since it has the same mean structure as Poisson regression and it has an extra parameter to model the over-dispersion. 
