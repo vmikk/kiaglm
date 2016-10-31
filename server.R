@@ -466,6 +466,16 @@ effs <- reactive({
 output$effs <- renderPlot({
   if( is.null(input$show.terms) ) { return() }                 # nothing selected
   if( !is.null(input$show.terms) ) {
+    
+    ## add exceptions for the unsupported models!
+    # if(input$family %in% c("zip", "zinb", "ztp", "ztnb", "phurd", "nbhurd")){
+    #   ...
+    # }
+    # 
+    # if(input$family %in% "glm"){
+    #   ...
+    # }
+    
     plot(effs())
   }
 })
