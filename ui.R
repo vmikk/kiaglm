@@ -88,6 +88,14 @@ shinyUI(pageWithSidebar(
         verbatimTextOutput("out.datt")
       ),
 
+      tabPanel("Marginal effects",
+        h3(strong("Marginal effects plots")),
+        plotOutput("effs"),
+        br(),
+        p("Computed effects are on the scale of the response variable using the inverse of the link function."),
+        p("Shaded area denotes 95% confidence limits.")
+      ),
+
       tabPanel("Description",
         h3(strong("Typical Workflow")),
         p("1. Upload your data: Tab-delimited text file with header (*.txt) or Excel file with one sheet (*.xls, *.xlsx)."),
@@ -165,7 +173,7 @@ shinyUI(pageWithSidebar(
         br(),
 
         h3(strong("Computational details")),
-        p("Used R-packages: MASS, pscl, car, XLConnect."),
+        p("Used R-packages: MASS, pscl, car, effects, XLConnect."),
         br(),
         br(),
         br(),

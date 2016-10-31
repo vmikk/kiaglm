@@ -18,6 +18,7 @@
 
 
 library(car)
+library(effects)    # for marginal effects
 library(MASS)       # for neg.binom glm
 library(pscl)       # for Zero-Inflated models
 # library(VGAM)     # for Zero-Truncated models
@@ -448,6 +449,26 @@ output$out.datt <- renderPrint({ outlier.data() })
 # dbs_influential_obs <- which(apply(infls$is.inf, 1, any)) 
 # dbs_sans_influential_obs <- dbs1[-dbs_influential_obs,]
 
+
+
+######################################
+######################################  Marginal effects plot
+######################################
+
+
+## Construct object for effect plots
+effs <- reactive({
+  modd <- mod()                # get the model
+  return( allEffects(modd) )
+})
+
+
+output$effs <- renderPlot({
+  if( is.null(input$show.terms) ) { return() }                 # nothing selected
+  if( !is.null(input$show.terms) ) {
+    plot(effs())
+  }
+})
 
 
 ######################################
